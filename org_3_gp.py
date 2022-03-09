@@ -296,7 +296,7 @@ ny = int(nx/8)
 
 ReList = [7e2, 9e2, 10e2, 11e2, 13e2]
 
-Re = 1300
+Re = 700
 Ri = 4
 Pr = 1
 
@@ -309,7 +309,7 @@ freq = np.int(nt/ns)
 
 dtrom = dt*freq
 
-nr = 2
+nr = 74 
 #%% grid
 dx = lx/nx
 dy = ly/ny

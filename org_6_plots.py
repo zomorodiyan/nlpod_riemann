@@ -79,7 +79,7 @@ def unpack(model, training_config, weights):
     if training_config is not None:
         restored_model.compile(
             **saving_utils.compile_args_from_training_config(
-              training_config
+                training_config, custom_objects={"coeff_determination": coeff_determination}
             )
         )
     restored_model.set_weights(weights)
@@ -98,10 +98,10 @@ Pr = 1
 
 Tm = 8
 dt = 5e-4
-nt = np.int(np.round(Tm/dt))
+nt = int(np.round(Tm/dt))
 
 ns = 200
-freq = np.int(nt/ns)
+freq = int(nt/ns)
 
 ReList = [7e2, 9e2, 10e2, 11e2, 13e2]
 ens_size = 10
@@ -311,6 +311,9 @@ plt.xscale('log')
 #%
 plt.xlabel(r'\bf POD index ($k$)')
 plt.ylabel(r'\bf RIC ($\%$)')
+
+if not os.path.exists('./Plots'):
+    os.makedirs('./Plots')
 plt.savefig('./Plots/RIC.png', dpi = 500, bbox_inches = 'tight')
 plt.savefig('./Plots/RIC.pdf', dpi = 500, bbox_inches = 'tight')
 
@@ -365,5 +368,7 @@ plt.text(-11.5, 0.6, r'\bf{NLPOD}', va='center',fontsize=18)
 plt.text(-11.5, 0.35, r'\bf{($r=2$)}', va='center',fontsize=18)
 
 fig.subplots_adjust(bottom=0.12,wspace=0.15,hspace=0.5)
+if not os.path.exists('./Plots'):
+    os.makedirs('./Plots')
 plt.savefig('./Plots/contours.png', dpi = 500, bbox_inches = 'tight')
 plt.savefig('./Plots/contours.pdf', dpi = 500, bbox_inches = 'tight')

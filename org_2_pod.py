@@ -113,10 +113,10 @@ Pr = 1
 
 Tm = 8
 dt = 5e-4
-nt = np.int(np.round(Tm/dt))
+nt = int(np.round(Tm/dt))
 
 ns = 200
-freq = np.int(nt/ns)
+freq = int(nt/ns)
 
 #%% grid
 
