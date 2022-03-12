@@ -1,8 +1,8 @@
-!-----------------------------------------------------------------------------------!
+!-----------------------------------------------------------------------------!
 ! 2D Euler Solver with WENO Scheme
-!-----------------------------------------------------------------------------------!
+!-----------------------------------------------------------------------------!
 ! Omer San, December 2012, Virginia Tech, omersan@vt.edu
-!-----------------------------------------------------------------------------------!
+!-----------------------------------------------------------------------------!
 
 program Euler2D
 implicit none
@@ -12,8 +12,8 @@ real*8,allocatable:: q(:,:,:)
 
 
 !problem selection:
-ip=3 	![1]c3,[2]c5,[3]c16,[4]c4,[5]c6,[6]c12,[7]c15,[8]c17,[9]c8,[10]c11,[11]c2
-		!differnet Rieamann configurations.
+ip=6 ![1]c3,[2]c5,[3]c16,[4]c4,[5]c6,[6]c12,[7]c15,[8]c17,[9]c8,[10]c11,[11]c2
+!differnet Rieamann configurations.
 
 !inputs
 nx = 400
@@ -21,9 +21,8 @@ ny = nx
 lx = 1.0d0
 ly = lx
 cfl = 0.5d0 ! we use to compute time step
-			!the code was orginally using adaptive time step, but I make it constant time step to make data analysis simpler.
-			!so we are not using this cfl within time iterations, I am just using at the beginning to get a rough estimate about dt.
-
+!the code was orginally using adaptive time step, but I make it constant time step to make data analysis simpler.
+!so we are not using this cfl within time iterations, I am just using at the beginning to get a rough estimate about dt.
 
 
 !all problems are defined in interval of [0,lx]x[0,ly]
@@ -54,30 +53,27 @@ time = 0.0d0
 
 !Time integration
 do k=1,nt
-
-    time = time + dt
-  	call tvdrk3(nx,ny,dx,dy,dt,q)
-
-	print*,k,time
-
+  time = time + dt
+  call tvdrk3(nx,ny,dx,dy,dt,q)
+  print*,k,time
+  if (mod(k,2)==0) then
+    call outresult(nx,ny,dx,dy,time,q,k/2)
+  end if
 end do
 
 call cpu_time(t2)
 
-
 !writing results
-call outresult(nx,ny,dx,dy,time,q)
 
 !write data
-open(19,file='cpu.txt')
-write(19,*)"cpu time =", t2-t1, "  second"
-write(19,*)"cpu time =", (t2-t1)/60.0d0, "  minute"
-write(19,*)"cpu time =", (t2-t1)/60.0d0/60.0d0, "  hour"
-close(19)
+! open(19,file='cpu.txt')
+! write(19,*)"cpu time =", t2-t1, "  second"
+! write(19,*)"cpu time =", (t2-t1)/60.0d0, "  minute"
+! write(19,*)"cpu time =", (t2-t1)/60.0d0/60.0d0, "  hour"
+! close(19)
 
 
 end
-
 
 !-----------------------------------------------------------------------------------!
 !TVD Runge Kutta 3rd order
@@ -100,34 +96,34 @@ b = 2.0d0/3.0d0
 call rhs(nx,ny,dx,dy,q,s)
 
 
-	do m=1,4
+  do m=1,4
     do j=1,ny
-	do i=1,nx
-    u(i,j,m) = q(i,j,m) + dt*s(i,j,m)
+      do i=1,nx
+        u(i,j,m) = q(i,j,m) + dt*s(i,j,m)
+      end do
     end do
-    end do
-    end do
+  end do
 
 
 call rhs(nx,ny,dx,dy,u,s)
 
-	do m=1,4
+  do m=1,4
     do j=1,ny
-	do i=1,nx
-    u(i,j,m) = 0.75d0*q(i,j,m) + 0.25d0*u(i,j,m) + 0.25d0*dt*s(i,j,m)
+      do i=1,nx
+      u(i,j,m) = 0.75d0*q(i,j,m) + 0.25d0*u(i,j,m) + 0.25d0*dt*s(i,j,m)
+      end do
     end do
-    end do
-    end do
+  end do
 
 call rhs(nx,ny,dx,dy,u,s)
 
-	do m=1,4
+  do m=1,4
     do j=1,ny
-	do i=1,nx
-    q(i,j,m) = a*q(i,j,m)+b*u(i,j,m)+b*dt*s(i,j,m)
+      do i=1,nx
+        q(i,j,m) = a*q(i,j,m)+b*u(i,j,m)+b*dt*s(i,j,m)
+      end do
     end do
-    end do
-    end do
+  end do
 
 deallocate (u,s)
 
@@ -139,12 +135,25 @@ end
 !Computing results
 !Compute primitive variables from conservative variables
 !-----------------------------------------------------------------------------------!
-subroutine outresult(nx,ny,dx,dy,time,q)
+! subroutine write_2d(nx,ny,field,field_name)
+!   open(0,file=field_name)
+!   do j = 1,ny
+!     do i = 1,nx-1
+!       write(0,'(1x,F8.4,A)',advance='no') field(i,j),","
+!     end do
+!     write(0,'(1x,F8.4)') field(nx,j)
+!   end do
+!   close(0)
+! end subroutine
+
+subroutine outresult(nx,ny,dx,dy,time,q,n_plot)
 implicit none
-integer::nx,ny,i,j
+integer::nx,ny,i,j,n_plot
 real*8 ::dx,dy,time,gamma
 real*8 ::q(-2:nx+3,-2:ny+3,4)
 real*8,allocatable:: x(:),y(:),r(:,:),u(:,:),v(:,:),p(:,:),e(:,:),h(:,:),a(:,:),m(:,:)
+character (len=20) :: folder
+character (len=20) :: suffix
 
 common /fluids/ gamma
 
@@ -153,66 +162,119 @@ allocate(p(nx,ny),e(nx,ny),h(nx,ny),a(nx,ny),m(nx,ny))
 
 !computing results at cell centers:
 do j=1,ny
-do i=1,nx
-
-	x(i) = dfloat(i)*dx - 0.5d0*dx
+  do i=1,nx
+    x(i) = dfloat(i)*dx - 0.5d0*dx
     y(j) = dfloat(j)*dy - 0.5d0*dy
 
-	r(i,j)= q(i,j,1)
-	u(i,j)= q(i,j,2)/q(i,j,1)
+    r(i,j)= q(i,j,1)
+    u(i,j)= q(i,j,2)/q(i,j,1)
     v(i,j)= q(i,j,3)/q(i,j,1)
-	e(i,j)= q(i,j,4)/q(i,j,1)
-	p(i,j)= (gamma-1.0d0)*(q(i,j,4)-0.5d0*(q(i,j,2)*q(i,j,2)/q(i,j,1)+q(i,j,3)*q(i,j,3)/q(i,j,1)))
-	h(i,j)= e(i,j) + p(i,j)/r(i,j)
-	a(i,j)= dsqrt(gamma*p(i,j)/r(i,j))
+    e(i,j)= q(i,j,4)/q(i,j,1)
+    p(i,j)= (gamma-1.0d0)*(q(i,j,4)-0.5d0*(q(i,j,2)*q(i,j,2)/q(i,j,1)+q(i,j,3)*q(i,j,3)/q(i,j,1)))
+    h(i,j)= e(i,j) + p(i,j)/r(i,j)
+    a(i,j)= dsqrt(gamma*p(i,j)/r(i,j))
     m(i,j)= dsqrt(u(i,j)*u(i,j)+v(i,j)*v(i,j))/a(i,j)
+  end do
+end do
 
-end do
-end do
-
-!writing results at cell centers:
-open(20,file='field_all.plt')
-write(20,*) 'variables ="x","y","r","u","v","p","e","h","a","m"'
-write(20,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
-do j=1,ny
-do i=1,nx
-write(20,*)x(i),y(j),r(i,j),u(i,j),v(i,j),p(i,j),e(i,j),h(i,j),a(i,j),m(i,j)
-end do
-end do
-close(20)
+folder = "Results/Euler_3/"
+if (n_plot < 10) then
+  write(suffix, "(I1,A4)") n_plot,".csv"
+else if (n_plot < 100) then
+  write(suffix, "(I2,A4)") n_plot,".csv"
+else
+  write(suffix, "(I3,A4)") n_plot,".csv"
+end if
 
 !writing results at cell centers:
-open(30,file='field_density.plt')
-write(30,*) 'variables ="x","y","r"'
-write(30,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
+open(0,file=trim(folder)//'X'//trim(suffix))
 do j=1,ny
-do i=1,nx
-write(30,*)x(i),y(j),r(i,j)
+  do i=1,nx-1
+    write(0,'(1x,F8.4,A)',advance='no') x(i),","
+  end do
+  write(0,'(1x,F8.4)') x(nx)
 end do
+close(0)
+
+open(0,file=trim(folder)//'Y'//trim(suffix))
+do j=1,ny
+  do i=1,nx-1
+    write(0,'(1x,F8.4,A)',advance='no') y(j),","
+  end do
+  write(0,'(1x,F8.4)') y(j)
 end do
-close(30)
+
+close(0)
+
+open(0,file=trim(folder)//"U"//trim(suffix))
+do j = 1,ny
+  do i = 1,nx-1
+    write(0,'(1x,F8.4,A)',advance='no') u(i,j),","
+  end do
+  write(0,'(1x,F8.4)') u(nx,j)
+end do
+close(0)
+
+open(0,file=trim(folder)//"V"//trim(suffix))
+do j = 1,ny
+  do i = 1,nx-1
+    write(0,'(1x,F8.4,A)',advance='no') v(i,j),","
+  end do
+  write(0,'(1x,F8.4)') v(nx,j)
+end do
+close(0)
+
+open(0,file=trim(folder)//"P"//trim(suffix))
+do j = 1,ny
+  do i = 1,nx-1
+    write(0,'(1x,F8.4,A)',advance='no') p(i,j),","
+  end do
+  write(0,'(1x,F8.4)') p(nx,j)
+end do
+close(0)
 
 !writing results at cell centers:
-open(40,file='field_mach.plt')
-write(40,*) 'variables ="x","y","m"'
-write(40,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
-do j=1,ny
-do i=1,nx
-write(40,*)x(i),y(j),m(i,j)
-end do
-end do
-close(40)
-
-!writing results at cell centers:
-open(50,file='field_pressure.plt')
-write(50,*) 'variables ="x","y","p"'
-write(50,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
-do j=1,ny
-do i=1,nx
-write(50,*)x(i),y(j),p(i,j)
-end do
-end do
-close(50)
+! open(20,file='field_all.plt')
+! write(20,*) 'variables ="x","y","r","u","v","p","e","h","a","m"' ! write(20,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
+! do j=1,ny
+! do i=1,nx
+! write(20,*)x(i),y(j),r(i,j),u(i,j),v(i,j),p(i,j),e(i,j),h(i,j),a(i,j),m(i,j)
+! end do
+! end do
+! close(20)
+!
+! !writing results at cell centers:
+! open(30,file='field_density.plt')
+! write(30,*) 'variables ="x","y","r"'
+! write(30,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
+! do j=1,ny
+! do i=1,nx
+! write(30,*)x(i),y(j),r(i,j)
+! end do
+! end do
+! close(30)
+!
+! !writing results at cell centers:
+! open(40,file='field_mach.plt')
+! write(40,*) 'variables ="x","y","m"'
+! write(40,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
+! do j=1,ny
+! do i=1,nx
+! write(40,*)x(i),y(j),m(i,j)
+! end do
+! end do
+! close(40)
+!
+! !writing results at cell centers:
+! open(50,file='field_pressure.plt')
+! write(50,*) 'variables ="x","y","p"'
+! write(50,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
+! do j=1,ny
+! do i=1,nx
+! write(50,*)x(i),y(j),p(i,j)
+! end do
+! end do
+! close(50)
 
 deallocate(x,y,r,u,v,p,e,h,a,m)
 
@@ -387,7 +449,7 @@ else if (ip.eq.6) then !Lax-Liu Configuration 12
     rUR=0.5313d0
 	uUR=0.0d0
     vUR=0.0d0
-    pUR=0.4d0
+    pUR=0.3d0
 	!lower-left
     rLL=0.8d0
 	uLL=0.0d0
