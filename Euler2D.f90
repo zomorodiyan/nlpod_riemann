@@ -51,6 +51,7 @@ call cpu_time(t1)
 
 time = 0.0d0
 
+call outresult(nx,ny,dx,dy,time,q,0)
 !Time integration
 do k=1,nt
   time = time + dt
@@ -177,7 +178,7 @@ do j=1,ny
   end do
 end do
 
-folder = "Results/Euler_3/"
+folder = "Results/csv/Euler_5/"
 if (n_plot < 10) then
   write(suffix, "(I1,A4)") n_plot,".csv"
 else if (n_plot < 100) then
@@ -186,25 +187,26 @@ else
   write(suffix, "(I3,A4)") n_plot,".csv"
 end if
 
-!writing results at cell centers:
-open(0,file=trim(folder)//'X'//trim(suffix))
-do j=1,ny
-  do i=1,nx-1
-    write(0,'(1x,F8.4,A)',advance='no') x(i),","
+if (n_plot==0) then
+  !writing results at cell centers:
+  open(0,file=trim(folder)//'X.csv')
+  do j=1,ny
+    do i=1,nx-1
+      write(0,'(1x,F8.4,A)',advance='no') x(i),","
+    end do
+    write(0,'(1x,F8.4)') x(nx)
   end do
-  write(0,'(1x,F8.4)') x(nx)
-end do
-close(0)
+  close(0)
 
-open(0,file=trim(folder)//'Y'//trim(suffix))
-do j=1,ny
-  do i=1,nx-1
-    write(0,'(1x,F8.4,A)',advance='no') y(j),","
+  open(0,file=trim(folder)//'Y.csv')
+  do j=1,ny
+    do i=1,nx-1
+      write(0,'(1x,F8.4,A)',advance='no') y(j),","
+    end do
+    write(0,'(1x,F8.4)') y(j)
   end do
-  write(0,'(1x,F8.4)') y(j)
-end do
-
-close(0)
+  close(0)
+end if !k==0
 
 open(0,file=trim(folder)//"U"//trim(suffix))
 do j = 1,ny
@@ -233,6 +235,14 @@ do j = 1,ny
 end do
 close(0)
 
+open(0,file=trim(folder)//"E"//trim(suffix))
+do j = 1,ny
+  do i = 1,nx-1
+    write(0,'(1x,F8.4,A)',advance='no') e(i,j),","
+  end do
+  write(0,'(1x,F8.4)') e(nx,j)
+end do
+close(0)
 !writing results at cell centers:
 ! open(20,file='field_all.plt')
 ! write(20,*) 'variables ="x","y","r","u","v","p","e","h","a","m"' ! write(20,*) 'zone t ="time ',time,'", i=',nx,',j=',ny,', f = point'
@@ -439,31 +449,29 @@ else if (ip.eq.5) then !Lax-Liu Configuration 6
     tmax  = 0.25d0
 
 else if (ip.eq.6) then !Lax-Liu Configuration 12
+  !upper-left
+  rUL=1.0d0
+  uUL=0.7276d0
+  vUL=0.0d0
+  pUL=1.0d0
+  !upper-right
+  rUR=0.5313d0
+  uUR=0.0d0
+  vUR=0.0d0
+	pUR=0.5d0
+  !lower-left
+  rLL=0.8d0
+  uLL=0.0d0
+  vLL=0.0d0
+  pLL=1.0d0
+  !lower-right
+  rLR=1.0d0
+  uLR=0.0d0
+  vLR=0.7276d0
+  pLR=1.0d0
 
-  	!upper-left
-    rUL=1.0d0
-	uUL=0.7276d0
-    vUL=0.0d0
-    pUL=1.0d0
-	!upper-right
-    rUR=0.5313d0
-	uUR=0.0d0
-    vUR=0.0d0
-    pUR=0.3d0
-	!lower-left
-    rLL=0.8d0
-	uLL=0.0d0
-    vLL=0.0d0
-    pLL=1.0d0
-	!lower-right
-    rLR=1.0d0
-	uLR=0.0d0
-    vLR=0.7276d0
-    pLR=1.0d0
-
-
-    gamma = 1.4d0
-    tmax  = 0.25d0
+  gamma = 1.4d0
+  tmax  = 0.25d0
 
 else if (ip.eq.7) then !Lax-Liu Configuration 15
 

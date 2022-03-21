@@ -50,21 +50,16 @@ def poisson_fst(nx, ny, dx, dy, w):
     return ue
 
 
-def import_fom_data(Re, nx, ny, n):
-    folder = "/data_" + str(nx) + "_" + str(ny)
-    filename = "./Results/Re_" + str(int(Re)) + folder + "/data_" + str(int(n)) + ".npz"
-
+def import_fom_data(BC, nx, ny, n):
+    filename = "./Results/Euler_" + str(int(BC)) + ".npz"
     data = np.load(filename)
     w = data["w"]
-    s = data["s"]
     t = data["t"]
-    return w, s, t
+    return w, t
 
 
 def POD_svd(wdata, tdata, nr):
-
     ne, nd, ns = wdata.shape
-    print("shape", wdata.shape)
     Aw = np.zeros([nd, ns * ne])
     At = np.zeros([nd, ns * ne])
     # stack data along first axis
