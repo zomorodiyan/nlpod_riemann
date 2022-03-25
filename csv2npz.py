@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+N = 51
 # read_write x,y
 x = np.genfromtxt("Results/csv/bc_1/X.csv", delimiter=",")
 np.save("Results/npz/X.npy", x)
@@ -13,7 +14,7 @@ for varName in ["P"]:
     for bc in range(1, 6):
         if not os.path.exists("./Results/npz/bc_" + str(bc)):
             os.makedirs("./Results/npz/bc_" + str(bc))
-        for ss in range(201):
+        for ss in range(N):
             # ---- read ------------------------------------------------------
             dir_ = "Results/csv/bc_" + str(bc) + "/" + varName + str(ss) + ".csv"
             z = np.genfromtxt(dir_, delimiter=",")

@@ -16,7 +16,7 @@ ip=6 ![1]c3,[2]c5,[3]c16,[4]c4,[5]c6,[6]c12,[7]c15,[8]c17,[9]c8,[10]c11,[11]c2
 !differnet Rieamann configurations.
 
 !inputs
-nx = 400
+nx = 100
 ny = nx
 lx = 1.0d0
 ly = lx
@@ -59,6 +59,7 @@ do k=1,nt
   print*,k,time
   if (mod(k,2)==0) then
     call outresult(nx,ny,dx,dy,time,q,k/2)
+    print*,'k:',k/2
   end if
 end do
 
@@ -178,7 +179,6 @@ do j=1,ny
   end do
 end do
 
-folder = "Results/csv/Euler_5/"
 if (n_plot < 10) then
   write(suffix, "(I1,A4)") n_plot,".csv"
 else if (n_plot < 100) then
@@ -187,6 +187,7 @@ else
   write(suffix, "(I3,A4)") n_plot,".csv"
 end if
 
+folder = "Results/csv/bc_5/"
 if (n_plot==0) then
   !writing results at cell centers:
   open(0,file=trim(folder)//'X.csv')

@@ -20,75 +20,32 @@ import matplotlib.pyplot as plt
 
 #%% Define functions
 
-# Elliptic coupled system solver for 2D Boussinesq equation:
-def poisson_fst(nx, ny, dx, dy, w):
 
-    f = np.zeros([nx - 1, ny - 1])
-    f = np.copy(-w[1:nx, 1:ny])
-
-    # DST: forward transform
-    ff = np.zeros([nx - 1, ny - 1])
-    ff = dst(f, axis=1, type=1)
-    ff = dst(ff, axis=0, type=1)
-
-    m = np.linspace(1, nx - 1, nx - 1).reshape([-1, 1])
-    n = np.linspace(1, ny - 1, ny - 1).reshape([1, -1])
-
-    alpha = (2.0 / (dx * dx)) * (np.cos(np.pi * m / nx) - 1.0) + (2.0 / (dy * dy)) * (
-        np.cos(np.pi * n / ny) - 1.0
-    )
-    u1 = ff / alpha
-
-    # IDST: inverse transform
-    u = idst(u1, axis=1, type=1)
-    u = idst(u, axis=0, type=1)
-    u = u / ((2.0 * nx) * (2.0 * ny))
-
-    ue = np.zeros([nx + 1, ny + 1])
-    ue[1:nx, 1:ny] = u
-
-    return ue
+def import_fom_data(bc, n):
+    filename = "./Results/npz/bc_" + str(bc) + "/P" + str(n) + ".npy"
+    z = np.load(filename)
+    return z
 
 
-def import_fom_data(BC, nx, ny, n):
-    filename = "./Results/Euler_" + str(int(BC)) + ".npz"
-    data = np.load(filename)
-    w = data["w"]
-    t = data["t"]
-    return w, t
-
-
-def POD_svd(wdata, tdata, nr):
-    ne, nd, ns = wdata.shape
-    Aw = np.zeros([nd, ns * ne])
-    At = np.zeros([nd, ns * ne])
+def POD_svd(zdata, nr):
+    ne, nd, ns = zdata.shape
+    Az = np.zeros([nd, ns * ne])
     # stack data along first axis
     for p in range(ne):
-        Aw[:, p * ns : (p + 1) * ns] = wdata[p, :, :]
-        At[:, p * ns : (p + 1) * ns] = tdata[p, :, :]
+        Az[:, p * ns : (p + 1) * ns] = zdata[p, :, :]
 
     # mean subtraction
-    wm = np.mean(Aw, axis=1)
-    tm = np.mean(At, axis=1)
-
-    Aw = Aw - wm.reshape([-1, 1])
-    At = At - tm.reshape([-1, 1])
+    zm = np.mean(Az, axis=1)
+    Az = Az - zm.reshape([-1, 1])
 
     # singular value decomposition
-    Uw, Sw, Vhw = LA.svd(Aw, full_matrices=False)
-    Ut, St, Vht = LA.svd(At, full_matrices=False)
+    Uz, Sz, Vhz = LA.svd(Az, full_matrices=False)
 
-    Phiw = Uw[:, :nr]
-    Lw = Sw ** 2
+    Phiz = Uz[:, :nr]
+    Lz = Sz ** 2
     # compute RIC (relative importance index)
-    RICw = np.cumsum(Lw) / np.sum(Lw) * 100
-
-    Phit = Ut[:, :nr]
-    Lt = St ** 2
-    # compute RIC (relative importance index)
-    RICt = np.cumsum(Lt) / np.sum(Lt) * 100
-
-    return wm, Phiw, Lw, RICw, tm, Phit, Lt, RICt
+    RICz = np.cumsum(Lz) / np.sum(Lz) * 100
+    return zm, Phiz, Lz, RICz
 
 
 def PODproj_svd(u, Phi):  # Projection
@@ -103,127 +60,87 @@ def PODrec_svd(a, Phi):  # Reconstruction
 
 #%% Main program
 # Inputs
-lx = 8
+lx = 1
 ly = 1
-nx = 64
-ny = int(nx / 8)
+nx = 100
+ny = nx
 
-ReList = [7e2, 9e2, 10e2, 11e2, 13e2]
-ReTrain = [7e2, 9e2, 11e2, 13e2]
+bcList = [1, 2, 3, 4, 5]
+bcTrain = [1, 2, 3, 5]
+# Ri = 4
+# Pr = 1
 
-Ri = 4
-Pr = 1
-
-Tm = 8
-dt = 5e-4
-nt = int(np.round(Tm / dt))
-
-ns = 200
+Tm = 0.25
+nt = 50
+ns = nt
+dt = 0.25 / nt
 freq = int(nt / ns)
+# twick 1
 
 #%% grid
-
 dx = lx / nx
 dy = ly / ny
 
-x = np.linspace(0.0, lx, nx + 1)
-y = np.linspace(0.0, ly, ny + 1)
+x = np.linspace(0.0, lx, nx)
+y = np.linspace(0.0, ly, ny)
 X, Y = np.meshgrid(x, y, indexing="ij")
 
 #%% Loading data
-wdata = np.zeros([len(ReList), (nx + 1) * (ny + 1), ns + 1])  # vorticity
-sdata = np.zeros([len(ReList), (nx + 1) * (ny + 1), ns + 1])  # streamfunction
-tdata = np.zeros([len(ReList), (nx + 1) * (ny + 1), ns + 1])  # temperature
+print("loading ...", end=" ")
+zdata = np.zeros([len(bcList), (nx) * (ny), ns + 1])  # wdata is pressure
 
 nstart = 0
 nend = nt
 nstep = freq
-for p, Re in enumerate(ReList):
-    ii = 0
+for i, bc in enumerate(bcList):
+    j = 0
     for n in range(nstart, nend + 1, nstep):
-        w, s, t = import_fom_data(Re, nx, ny, n)
-        wdata[p, :, ii] = w.reshape(
+        z = import_fom_data(bc, n)  # twick_3 we can add nx_ny too
+        zdata[i, :, j] = z.reshape(
             [
                 -1,
             ]
         )
-        sdata[p, :, ii] = s.reshape(
-            [
-                -1,
-            ]
-        )
-        tdata[p, :, ii] = t.reshape(
-            [
-                -1,
-            ]
-        )
-        ii = ii + 1
+        j = j + 1
 
+print("done!")
 #%% POD basis generation
+print("generating POD basis ...", end=" ")
+zdata = np.zeros([len(bcList), (nx) * (ny), ns + 1])  # wdata is pressure
 nr = 100  # number of basis to store [we might not need to *use* all of them]
+# twick 2
 
-# compute  mean field and basis functions for potential voriticity
-mask = [ReList.index(Re) for Re in ReTrain]
+# compute mean field and basis functions for potential voriticity
+mask = [bcList.index(bc) for bc in bcTrain]
 inc = 1
-wmean, wbasis, weigenvalues, wric, tmean, tbasis, teigenvalues, tric = POD_svd(
-    wdata[mask, :, ::inc], tdata[mask, :, ::inc], nr
-)
-
-#%% Compute Streamfunction mean and basis functions
-# from those of potential vorticity using Poisson equation
-
-tmp = wmean.reshape([nx + 1, ny + 1])
-tmp = poisson_fst(nx, ny, dx, dy, tmp)
-smean = tmp.reshape(
-    [
-        -1,
-    ]
-)
-
-sbasis = np.zeros([(nx + 1) * (ny + 1), nr])
-for k in range(nr):
-    tmp = np.copy(wbasis[:, k]).reshape([nx + 1, ny + 1])
-    tmp = poisson_fst(nx, ny, dx, dy, tmp)
-    sbasis[:, k] = tmp.reshape(
-        [
-            -1,
-        ]
-    )
+zmean, zbasis, zeigenvalues, zric = POD_svd(zdata[mask, :, ::inc], nr)
+print("done!")
 
 #%% compute true modal coefficients
+print("computing coeff ...", end=" ")
+zcoeff = np.zeros([len(bcList), nr, ns + 1])
 
-wcoeff = np.zeros([len(ReList), nr, ns + 1])
-tcoeff = np.zeros([len(ReList), nr, ns + 1])
+for i, bc in enumerate(bcList):
+    z = np.copy(zdata[i, :, :])
+    tmp = z - zmean.reshape(-1, 1)
+    zcoeff[i, :, :] = PODproj_svd(tmp, zbasis)
 
-for p, Re in enumerate(ReList):
-
-    w = np.copy(wdata[p, :, :])
-    t = np.copy(tdata[p, :, :])
-
-    tmp = w - wmean.reshape(-1, 1)
-    wcoeff[p, :, :] = PODproj_svd(tmp, wbasis)
-
-    tmp = t - tmean.reshape(-1, 1)
-    tcoeff[p, :, :] = PODproj_svd(tmp, tbasis)
-
+print("done!")
 #%% Save data
-folder = "data_" + str(nx) + "_" + str(ny)
+
+print("make folder ./Results/euler_nx_ny")
+folder = "euler_" + str(nx) + "_" + str(ny)
 if not os.path.exists("./Results/" + folder):
     os.makedirs("./Results/" + folder)
 
-filename = "./Results/" + folder + "/POD_data.npz"
+filename = "./Results/" + folder + "/P_POD_data.npz"
+print("saving ...", end=" ")
 np.savez(
     filename,
-    wmean=wmean,
-    wbasis=wbasis,
-    smean=smean,
-    sbasis=sbasis,
-    tmean=tmean,
-    tbasis=tbasis,
-    wcoeff=wcoeff,
-    tcoeff=tcoeff,
-    weigenvalues=weigenvalues,
-    wric=wric,
-    teigenvalues=teigenvalues,
-    tric=tric,
+    zmean=zmean,
+    zbasis=zbasis,
+    zcoeff=zcoeff,
+    zeigenvalues=zeigenvalues,
+    zric=zric,
 )
+print("done!")

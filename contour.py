@@ -2,10 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Data
-diry = "Results/Euler_4/"
-x = np.genfromtxt(diry + "X.csv", delimiter=",")
-y = np.genfromtxt(diry + "Y.csv", delimiter=",")
-z = np.genfromtxt(diry + "P200.csv", delimiter=",")
+diry = "Results/npz/"
+x = np.load(diry + "X.npy")
+y = np.load(diry + "Y.npy")
+z = np.load(diry + "bc_1/P49.npy")
+print(x.shape)
+print(y.shape)
+print(z.shape)
 
 # plot.
 fig, ax = plt.subplots(ncols=1)
