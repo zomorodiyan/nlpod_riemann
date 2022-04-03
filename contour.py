@@ -5,13 +5,14 @@ import numpy as np
 diry = "Results/npz/"
 x = np.load(diry + "X.npy")
 y = np.load(diry + "Y.npy")
-z = np.load(diry + "bc_1/P49.npy")
+z = np.load(diry + "bc_1/P40.npy")
 print(x.shape)
 print(y.shape)
 print(z.shape)
 
 # plot.
 fig, ax = plt.subplots(ncols=1)
+plt.rcParams.update({"font.size": 12})
 fig.set_size_inches(6.5, 5)
 cs = ax.contourf(x, y, z, levels=200, cmap="coolwarm")
 cbar = fig.colorbar(cs)
